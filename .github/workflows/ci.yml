@@ -1,0 +1,126 @@
+# ──────────────────────────────────────────────────────────────
+# Neighbourhood Help Network — CI/CD Pipeline
+# Author: Nalin Jayswal
+#
+# Triggers: every push and pull request to the main branch
+#
+# Jobs:
+#   1. backend-test   → Install deps, run Mocha/Chai API tests
+#   2. frontend-build → Install deps, build the React app
+#   3. deploy         → SSH into server, pull & restart via PM2
+#                       (only runs on push to main, after jobs 1+2 pass)
+#
+# Required GitHub Secrets:
+#   MONGO_URI          → MongoDB Atlas connection string
+#   JWT_SECRET         → JWT signing secret
+#   REACT_APP_API_URL  → Public backend URL (e.g. http://<ip>:5001)
+#   SSH_HOST           → VPS IP address
+#   SSH_USER           → SSH username (e.g. ubuntu)
+#   SSH_PRIVATE_KEY    → Private SSH key for server access
+# ──────────────────────────────────────────────────────────────
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  # ── Job 1: Backend Tests ──────────────────────────────────────
+  backend-test:
+    name: 🧪 Backend Tests (Node.js + Mocha)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Run API test suite
+        working-directory: backend
+        env:
+          # Uses MongoDB Atlas via GitHub Secret — no local DB needed
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NODE_ENV: test
+        run: npm test
+
+  # ── Job 2: Frontend Build ─────────────────────────────────────
+  frontend-build:
+    name: 🏗️ Frontend Build (React)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build production React bundle
+        working-directory: frontend
+        env:
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+          CI: false   # Prevents treating warnings as errors
+        run: npm run build
+
+  # ── Job 3: Deploy to Server ───────────────────────────────────
+  deploy:
+    name: 🚀 Deploy via PM2
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]  # Only runs if both jobs above pass
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "── Pulling latest code ──"
+            cd ~/neighbourhood-help-network
+            git pull origin main
+
+            echo "── Restarting backend ──"
+            cd backend
+            npm install --production
+            pm2 restart nhn-backend || pm2 start server.js --name nhn-backend
+            pm2 status
+
+            echo "── Building and restarting frontend ──"
+            cd ../frontend
+            npm install
+            REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }} npm run build
+            pm2 restart nhn-frontend || pm2 serve build 3000 --name nhn-frontend --spa
+            pm2 save
+
+            echo "── Deployment complete ✅ ──"
+            pm2 status
