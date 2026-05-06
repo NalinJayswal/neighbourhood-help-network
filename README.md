@@ -402,5 +402,4 @@ All changes are developed on feature branches and merged to `main` via **Pull Re
 - [Axios HTTP Client](https://axios-http.com/docs/intro)
 
 ---
-
-*Developed by Nalin Jayswal — IFQ636 Assessment 1.2*
+test push
