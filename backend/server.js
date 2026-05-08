@@ -47,10 +47,13 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 
 const commentRoutes = require('./routes/commentRoutes');
 app.use('/api/helprequests/:id/comments', commentRoutes);
+<<<<<<< feature/comments
+=======
 
 const notificationRoutes = require('./routes/notificationRoutes');
 app.use('/api/notifications', notificationRoutes);
 
+>>>>>>> main
 // ── Health Check ─────────────────────────────────────────────
 // This endpoint is used to verify the server is running
 // Useful for CI/CD pipelines and deployment verification
