@@ -21,6 +21,7 @@
  */
 
 const HelpRequest = require('../models/HelpRequest');
+const Notification = require('../models/Notification');
 
 // ─────────────────────────────────────────────────────────────
 // CREATE — POST /api/helprequests
@@ -197,7 +198,14 @@ const volunteerForRequest = async (req, res) => {
     helpRequest.status = 'In Progress';
 
     const updatedRequest = await helpRequest.save();
-    res.status(200).json(updatedRequest);
+
+    await Notification.create({
+      recipient: helpRequest.createdBy,
+      message: `Someone volunteered for your request: ${helpRequest.title}`,
+      helpRequest: helpRequest._id
+  });
+
+res.status(200).json(updatedRequest);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
