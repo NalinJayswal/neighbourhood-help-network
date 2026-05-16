@@ -32,7 +32,7 @@ jobs:
 
   # ── Job 1: Backend Tests ──────────────────────────────────────
   backend-test:
-    name: 🧪 Backend Tests (Node.js + Mocha)
+    name: Backend Tests (Node.js + Mocha)
     runs-on: self-hosted
 
     steps:
@@ -61,7 +61,7 @@ jobs:
 
   # ── Job 2: Frontend Build ─────────────────────────────────────
   frontend-build:
-    name: 🏗️ Frontend Build (React)
+    name: Frontend Build (React)
     runs-on: self-hosted
 
     steps:
@@ -87,29 +87,30 @@ jobs:
         run: npm run build
 
   # ── Job 3: Deploy to Server ───────────────────────────────────
+  # ── Job 3: Deploy to Server ───────────────────────────────────
   deploy:
-  name: 🚀 Deploy via PM2
-  runs-on: self-hosted
-  needs: [backend-test, frontend-build]
-  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    name: Deploy via PM2
+    runs-on: self-hosted
+    needs: [backend-test, frontend-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Deploy backend
-      run: |
-        cd /home/ubuntu/neighbourhood-help-network
-        git pull origin main
-        cd backend
-        npm install --production
-        pm2 restart nhn-backend || pm2 start server.js --name nhn-backend
-        pm2 save
+      - name: Deploy backend
+        run: |
+          cd /home/ubuntu/neighbourhood-help-network
+          git pull origin main
+          cd backend
+          npm install --production
+          pm2 restart nhn-backend || pm2 start server.js --name nhn-backend
+          pm2 save
 
-    - name: Deploy frontend
-      run: |
-        cd /home/ubuntu/neighbourhood-help-network/frontend
-        npm install
-        REACT_APP_API_URL=http://54.79.173.237:5001 npm run build
-        pm2 restart nhn-frontend || pm2 serve build 3001 --name nhn-frontend --spa
-        pm2 save
+      - name: Deploy frontend
+        run: |
+          cd /home/ubuntu/neighbourhood-help-network/frontend
+          npm install
+          REACT_APP_API_URL=http://54.79.173.237:5001 npm run build
+          pm2 restart nhn-frontend || pm2 serve build 3001 --name nhn-frontend --spa
+          pm2 save
