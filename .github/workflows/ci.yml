@@ -88,38 +88,28 @@ jobs:
 
   # ── Job 3: Deploy to Server ───────────────────────────────────
   deploy:
-    name: 🚀 Deploy via PM2
-    runs-on: self-hosted
-    needs: [backend-test, frontend-build]  # Only runs if both jobs above pass
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  name: 🚀 Deploy via PM2
+  runs-on: self-hosted
+  needs: [backend-test, frontend-build]
+  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Deploy to VPS via SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "── Pulling latest code ──"
-            cd ~/neighbourhood-help-network
-            git pull origin main
+    - name: Deploy backend
+      run: |
+        cd /home/ubuntu/neighbourhood-help-network
+        git pull origin main
+        cd backend
+        npm install --production
+        pm2 restart nhn-backend || pm2 start server.js --name nhn-backend
+        pm2 save
 
-            echo "── Restarting backend ──"
-            cd backend
-            npm install --production
-            pm2 restart nhn-backend || pm2 start server.js --name nhn-backend
-            pm2 status
-
-            echo "── Building and restarting frontend ──"
-            cd ../frontend
-            npm install
-            REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }} npm run build
-            pm2 restart nhn-frontend || pm2 serve build 3000 --name nhn-frontend --spa
-            pm2 save
-
-            echo "── Deployment complete ✅ ──"
-            pm2 status
+    - name: Deploy frontend
+      run: |
+        cd /home/ubuntu/neighbourhood-help-network/frontend
+        npm install
+        REACT_APP_API_URL=http://54.79.173.237:5001 npm run build
+        pm2 restart nhn-frontend || pm2 serve build 3001 --name nhn-frontend --spa
+        pm2 save
