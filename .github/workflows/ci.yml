@@ -1,6 +1,5 @@
 # ──────────────────────────────────────────────────────────────
 # Neighbourhood Help Network — CI/CD Pipeline
-# Author: Nalin Jayswal
 #
 # Triggers: every push and pull request to the main branch
 #
@@ -34,7 +33,7 @@ jobs:
   # ── Job 1: Backend Tests ──────────────────────────────────────
   backend-test:
     name: 🧪 Backend Tests (Node.js + Mocha)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout repository
@@ -63,7 +62,7 @@ jobs:
   # ── Job 2: Frontend Build ─────────────────────────────────────
   frontend-build:
     name: 🏗️ Frontend Build (React)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout repository
@@ -90,7 +89,7 @@ jobs:
   # ── Job 3: Deploy to Server ───────────────────────────────────
   deploy:
     name: 🚀 Deploy via PM2
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [backend-test, frontend-build]  # Only runs if both jobs above pass
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
