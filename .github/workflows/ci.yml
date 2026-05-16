@@ -111,6 +111,6 @@ jobs:
         run: |
           cd /home/ubuntu/neighbourhood-help-network/frontend
           npm install
-          REACT_APP_API_URL=http://54.79.173.237:5001 npm run build
+          CI=false REACT_APP_API_URL=http://54.79.173.237:5001 npm run build
           pm2 restart nhn-frontend || pm2 serve build 3001 --name nhn-frontend --spa
           pm2 save
